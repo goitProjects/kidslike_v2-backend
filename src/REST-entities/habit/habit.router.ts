@@ -29,7 +29,7 @@ const addHabitIdSchema = Joi.object({
       const isValidObjectId = mongoose.Types.ObjectId.isValid(value);
       if (!isValidObjectId) {
         return helpers.message({
-          custom: "Invalid 'childId'. Must be MongoDB ObjectId",
+          custom: "Invalid 'childId'. Must be a MongoDB ObjectId",
         });
       }
       return value;
@@ -43,7 +43,22 @@ const editOrDeleteHabitIdSchema = Joi.object({
       const isValidObjectId = mongoose.Types.ObjectId.isValid(value);
       if (!isValidObjectId) {
         return helpers.message({
-          custom: "Invalid 'habitId'. Must be MongoDB ObjectId",
+          custom: "Invalid 'habitId'. Must be a MongoDB ObjectId",
+        });
+      }
+      return value;
+    })
+    .required(),
+});
+
+const dateHabitSchema = Joi.object({
+  date: Joi.string()
+    .custom((value, helpers) => {
+      const dateRegex = /^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$/;
+      const isValidDate = dateRegex.test(value);
+      if (!isValidDate) {
+        return helpers.message({
+          custom: "Invalid 'date'. Please, use YYYY-MM-DD string format",
         });
       }
       return value;
@@ -56,34 +71,36 @@ const router = Router();
 router.get("/", authorize, tryCatchWrapper(getHabits));
 router.post(
   "/:childId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(addHabitIdSchema, "params"),
   validate(addHabitSchema),
   tryCatchWrapper(addHabit)
 );
 router.patch(
   "/:habitId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteHabitIdSchema, "params"),
   validate(editHabitSchema),
   tryCatchWrapper(editHabit)
 );
 router.delete(
   "/:habitId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteHabitIdSchema, "params"),
   tryCatchWrapper(deleteHabit)
 );
 router.patch(
   "/confirm/:habitId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteHabitIdSchema, "params"),
+  validate(dateHabitSchema),
   tryCatchWrapper(habitDayConfirmed)
 );
 router.patch(
   "/cancel/:habitId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteHabitIdSchema, "params"),
+  validate(dateHabitSchema),
   tryCatchWrapper(habitDayCanceled)
 );
 

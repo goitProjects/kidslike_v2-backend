@@ -32,7 +32,7 @@ const refreshTokensSchema = Joi.object({
       const isValidObjectId = mongoose.Types.ObjectId.isValid(value);
       if (!isValidObjectId) {
         return helpers.message({
-          custom: "Invalid 'sid'. Must be MongoDB ObjectId",
+          custom: "Invalid 'sid'. Must be a MongoDB ObjectId",
         });
       }
       return value;
@@ -44,7 +44,7 @@ const router = Router();
 
 router.post("/register", validate(signUpSchema), tryCatchWrapper(register));
 router.post("/login", validate(signInSchema), tryCatchWrapper(login));
-router.post("/logout", authorize, tryCatchWrapper(logout));
+router.post("/logout", tryCatchWrapper(authorize), tryCatchWrapper(logout));
 router.post(
   "/refresh",
   validate(refreshTokensSchema),
