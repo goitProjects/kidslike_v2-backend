@@ -124,7 +124,7 @@ export const habitDayConfirmed = async (req: Request, res: Response) => {
   } else {
     return res
       .status(400)
-      .send({ message: "Today's day doesn't exist on provided habit" });
+      .send({ message: "This day doesn't exist on provided habit" });
   }
   const updatedHabit = await HabitModel.findOneAndUpdate(
     { _id: req.params.habitId, "days.date": date },
@@ -195,7 +195,7 @@ export const habitDayCanceled = async (req: Request, res: Response) => {
   } else {
     return res
       .status(400)
-      .send({ message: "Today's day doesn't exist on provided habit" });
+      .send({ message: "This day doesn't exist on provided habit" });
   }
   const updatedHabit = await HabitModel.findOneAndUpdate(
     { _id: req.params.habitId, "days.date": date },
