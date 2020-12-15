@@ -2037,7 +2037,7 @@
           "endDate": {
             "type": "string",
             "description": "Task's end date (if 'daysToComplete' field was provided)",
-            "example": "2021-01-01"
+            "example": "2020-12-31"
           },
           "childId": {
             "type": "string",

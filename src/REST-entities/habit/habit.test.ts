@@ -726,7 +726,7 @@ describe("Habit router test suite", () => {
     };
 
     const fourthInvalidReqBody = {
-      date: "2020-13-31",
+      date: "2020-13-12",
     };
 
     it("Init endpoint testing", () => {

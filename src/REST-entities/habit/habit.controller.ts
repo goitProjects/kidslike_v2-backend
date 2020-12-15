@@ -7,7 +7,6 @@ import {
   IHabit,
   IHabitDays,
   IParentPopulated,
-  IChildPopulated,
 } from "../../helpers/typescript-helpers/interfaces";
 import HabitModel from "./habit.model";
 import ChildModel from "../child/child.model";
