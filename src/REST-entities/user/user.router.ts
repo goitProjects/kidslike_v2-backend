@@ -1,7 +1,7 @@
 import { Router } from "express";
 import Joi from "joi";
 import validate from "../../helpers/function-helpers/validate";
-import { authorize } from "./../../auth/auth.controller";
+import { authorize } from "../../auth/auth.controller";
 import tryCatchWrapper from "../../helpers/function-helpers/try-catch-wrapper";
 import { getAllInfo, clearAllInfo } from "./user.controller";
 
