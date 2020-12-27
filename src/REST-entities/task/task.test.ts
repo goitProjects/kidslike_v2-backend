@@ -1,8 +1,12 @@
-import mongoose, { Document } from "mongoose";
+import mongoose from "mongoose";
 import supertest, { Response } from "supertest";
 import { Application } from "express";
 import Server from "../../server/server";
-import { IChild, ITask } from "../../helpers/typescript-helpers/interfaces";
+import {
+  IChild,
+  IChildPopulated,
+  ITask,
+} from "../../helpers/typescript-helpers/interfaces";
 import { Gender } from "../../helpers/typescript-helpers/enums";
 import UserModel from "../user/user.model";
 import SessionModel from "../session/session.model";
@@ -12,18 +16,18 @@ import { TaskStatus } from "../../helpers/typescript-helpers/enums";
 
 describe("Task router test suite", () => {
   let app: Application;
-  let createdChild: Document | null;
-  let secondCreatedChild: Document | null;
+  let createdChild: IChild | IChildPopulated | null;
+  let secondCreatedChild: IChild | IChildPopulated | null;
   let response: Response;
   let secondResponse: Response;
   let thirdResponse: Response;
   let fourthResponse: Response;
   let accessToken: string;
   let secondAccessToken: string;
-  let createdTask: Document | null;
-  let secondCreatedTask: Document | null;
-  let updatedChild: Document | null;
-  let confirmedTask: Document | null;
+  let createdTask: ITask | null;
+  let secondCreatedTask: ITask | null;
+  let updatedChild: IChild | IChildPopulated | null;
+  let confirmedTask: ITask | null;
 
   beforeAll(async () => {
     app = new Server().startForTesting();
@@ -65,8 +69,8 @@ describe("Task router test suite", () => {
   });
 
   afterAll(async () => {
-    await UserModel.deleteOne({ email: "test@email.com" });
-    await UserModel.deleteOne({ email: "test2@email.com" });
+    await UserModel.deleteOne({ email: response.body.data.email });
+    await UserModel.deleteOne({ email: secondResponse.body.data.email });
     await SessionModel.deleteOne({ _id: response.body.sid });
     await SessionModel.deleteOne({ _id: secondResponse.body.sid });
     await ChildModel.deleteOne({ _id: (createdChild as IChild)._id });
@@ -134,8 +138,8 @@ describe("Task router test suite", () => {
 
       it("Should return an expected result", () => {
         expect(response.body).toEqual({
-          name: "Test",
-          reward: 1,
+          name: validReqBody.name,
+          reward: validReqBody.reward,
           isCompleted: "unknown",
           daysToComplete: 1,
           startDate: (createdTask as ITask).startDate,
@@ -174,8 +178,8 @@ describe("Task router test suite", () => {
 
       it("Should return an expected result", () => {
         expect(response.body).toEqual({
-          name: "Test",
-          reward: 1,
+          name: validReqBody.name,
+          reward: validReqBody.reward,
           isCompleted: "unknown",
           childId: (createdChild as IChild)._id.toString(),
           id: (secondCreatedTask as ITask)._id.toString(),
@@ -310,7 +314,7 @@ describe("Task router test suite", () => {
 
       it("Should say that 'childId' is invalid", () => {
         expect(response.body.message).toBe(
-          "Invalid 'childId'. Must be MongoDB ObjectId"
+          "Invalid 'childId'. Must be a MongoDB ObjectId"
         );
       });
     });
@@ -392,7 +396,7 @@ describe("Task router test suite", () => {
 
   describe("PATCH /task/{taskId}", () => {
     let response: Response;
-    let updatedTask: Document | null;
+    let updatedTask: ITask | null;
 
     const validReqBody = {
       name: "Test2",
@@ -420,7 +424,12 @@ describe("Task router test suite", () => {
           .patch(`/task/${(createdTask as ITask)._id}`)
           .set("Authorization", `Bearer ${accessToken}`)
           .send(validReqBody);
-        updatedTask = await TaskModel.findById((createdTask as ITask)._id);
+        updatedTask = await TaskModel.findById(
+          (createdTask as ITask)._id
+        ).lean();
+        createdChild = await ChildModel.findById((createdChild as IChild)._id)
+          .populate("tasks")
+          .lean();
       });
 
       it("Should return a 200 status code", () => {
@@ -429,7 +438,7 @@ describe("Task router test suite", () => {
 
       it("Should return an expected result", () => {
         expect(response.body).toEqual({
-          name: "Test2",
+          name: validReqBody.name,
           reward: 1,
           daysToComplete: 1,
           isCompleted: "unknown",
@@ -442,6 +451,10 @@ describe("Task router test suite", () => {
 
       it("Should update a task in DB", () => {
         expect((updatedTask as ITask).name).toBe("Test2");
+      });
+
+      it("Should update a child in DB", () => {
+        expect((createdChild as IChild).tasks[0]).toEqual(updatedTask);
       });
     });
 
@@ -594,7 +607,7 @@ describe("Task router test suite", () => {
 
       it("Should say that 'taskId' is invalid", () => {
         expect(response.body.message).toBe(
-          "Invalid 'taskId'. Must be MongoDB ObjectId"
+          "Invalid 'taskId'. Must be a MongoDB ObjectId"
         );
       });
     });
@@ -612,7 +625,12 @@ describe("Task router test suite", () => {
         response = await supertest(app)
           .patch(`/task/confirm/${(createdTask as ITask)._id}`)
           .set("Authorization", `Bearer ${accessToken}`);
-        confirmedTask = await TaskModel.findById((createdTask as ITask)._id);
+        confirmedTask = await TaskModel.findById(
+          (createdTask as ITask)._id
+        ).lean();
+        createdChild = await ChildModel.findById((createdChild as IChild)._id)
+          .populate("tasks")
+          .lean();
       });
 
       it("Should return a 200 status code", () => {
@@ -637,6 +655,10 @@ describe("Task router test suite", () => {
 
       it("Should confirm a task in DB", () => {
         expect((confirmedTask as ITask).isCompleted).toBe(TaskStatus.CONFIRMED);
+      });
+
+      it("Should update a child in DB", () => {
+        expect((createdChild as IChild).tasks[0]).toEqual(confirmedTask);
       });
     });
 
@@ -717,7 +739,7 @@ describe("Task router test suite", () => {
 
       it("Should say that 'taskId' is invalid", () => {
         expect(response.body.message).toBe(
-          "Invalid 'taskId'. Must be MongoDB ObjectId"
+          "Invalid 'taskId'. Must be a MongoDB ObjectId"
         );
       });
     });
@@ -798,7 +820,7 @@ describe("Task router test suite", () => {
 
       it("Should say that 'childId' is invalid", () => {
         expect(response.body.message).toBe(
-          "Invalid 'childId'. Must be MongoDB ObjectId"
+          "Invalid 'childId'. Must be a MongoDB ObjectId"
         );
       });
     });
@@ -806,8 +828,8 @@ describe("Task router test suite", () => {
 
   describe("PATCH /task/cancel/{taskId}", () => {
     let response: Response;
-    let canceledTask: Document | null;
-    let secondTask: Document | null;
+    let canceledTask: ITask | null;
+    let secondTask: ITask | null;
 
     it("Init endpoint testing", () => {
       expect(true).toBe(true);
@@ -821,7 +843,12 @@ describe("Task router test suite", () => {
         response = await supertest(app)
           .patch(`/task/cancel/${(secondTask as ITask)._id}`)
           .set("Authorization", `Bearer ${secondAccessToken}`);
-        canceledTask = await TaskModel.findById((secondTask as ITask)._id);
+        canceledTask = await TaskModel.findById(
+          (secondTask as ITask)._id
+        ).lean();
+        updatedChild = await ChildModel.findById((secondCreatedChild as IChild)._id)
+          .populate("tasks")
+          .lean();
       });
 
       it("Should return a 200 status code", () => {
@@ -843,6 +870,10 @@ describe("Task router test suite", () => {
 
       it("Should cancel a task in DB", () => {
         expect((canceledTask as ITask).isCompleted).toBe(TaskStatus.CANCELED);
+      });
+
+      it("Should update a child in DB", () => {
+        expect((updatedChild as IChild).tasks[0]).toEqual(canceledTask);
       });
     });
 
@@ -923,7 +954,7 @@ describe("Task router test suite", () => {
 
       it("Should say that 'taskId' is invalid", () => {
         expect(response.body.message).toBe(
-          "Invalid 'taskId'. Must be MongoDB ObjectId"
+          "Invalid 'taskId'. Must be a MongoDB ObjectId"
         );
       });
     });
@@ -931,7 +962,7 @@ describe("Task router test suite", () => {
 
   describe("PATCH /task/reset/{taskId}", () => {
     let response: Response;
-    let unknownTask: Document | null;
+    let unknownTask: ITask | null;
 
     it("Init endpoint testing", () => {
       expect(true).toBe(true);
@@ -942,7 +973,12 @@ describe("Task router test suite", () => {
         response = await supertest(app)
           .patch(`/task/reset/${(createdTask as ITask)._id}`)
           .set("Authorization", `Bearer ${accessToken}`);
-        unknownTask = await TaskModel.findById((createdTask as ITask)._id);
+        unknownTask = await TaskModel.findById(
+          (createdTask as ITask)._id
+        ).lean();
+        createdChild = await ChildModel.findById((createdChild as IChild)._id)
+          .populate("tasks")
+          .lean();
       });
 
       it("Should return a 200 status code", () => {
@@ -964,6 +1000,10 @@ describe("Task router test suite", () => {
 
       it("Should update a task in DB", () => {
         expect((unknownTask as ITask).isCompleted).toBe(TaskStatus.UNKNOWN);
+      });
+
+      it("Should update a child in DB", () => {
+        expect((createdChild as IChild).tasks[0]).toEqual(unknownTask);
       });
     });
 
@@ -1044,7 +1084,7 @@ describe("Task router test suite", () => {
 
       it("Should say that 'taskId' is invalid", () => {
         expect(response.body.message).toBe(
-          "Invalid 'taskId'. Must be MongoDB ObjectId"
+          "Invalid 'taskId'. Must be a MongoDB ObjectId"
         );
       });
     });
@@ -1052,8 +1092,8 @@ describe("Task router test suite", () => {
 
   describe("DELETE /task/{taskId}", () => {
     let response: Response;
-    let secondTask: Document | null;
-    let deletedTask: Document | null;
+    let secondTask: ITask | null;
+    let deletedTask: ITask | null;
 
     it("Init endpoint testing", () => {
       expect(true).toBe(true);
@@ -1066,6 +1106,25 @@ describe("Task router test suite", () => {
       await supertest(app)
         .delete(`/task/${(secondCreatedTask as ITask)._id}`)
         .set("Authorization", `Bearer ${accessToken}`);
+    });
+
+    context("With another account", () => {
+      beforeAll(async () => {
+        secondTask = await TaskModel.findOne({
+          childId: (secondCreatedChild as IChild)._id,
+        });
+        response = await supertest(app)
+          .delete(`/task/${(secondTask as ITask)._id}`)
+          .set("Authorization", `Bearer ${accessToken}`);
+      });
+
+      it("Should return a 404 status code", () => {
+        expect(response.status).toBe(404);
+      });
+
+      it("Should say that child wasn't found", () => {
+        expect(response.body.message).toBe("Child not found");
+      });
     });
 
     context("Valid request", () => {
@@ -1117,25 +1176,6 @@ describe("Task router test suite", () => {
       });
     });
 
-    context("With another account", () => {
-      beforeAll(async () => {
-        secondTask = await TaskModel.findOne({
-          childId: (secondCreatedChild as IChild)._id,
-        });
-        response = await supertest(app)
-          .delete(`/task/${(secondTask as ITask)._id}`)
-          .set("Authorization", `Bearer ${accessToken}`);
-      });
-
-      it("Should return a 404 status code", () => {
-        expect(response.status).toBe(404);
-      });
-
-      it("Should say that child wasn't found", () => {
-        expect(response.body.message).toBe("Child not found");
-      });
-    });
-
     context("With invalid 'taskId'", () => {
       beforeAll(async () => {
         response = await supertest(app)
@@ -1149,7 +1189,7 @@ describe("Task router test suite", () => {
 
       it("Should say that 'taskId' is invalid", () => {
         expect(response.body.message).toBe(
-          "Invalid 'taskId'. Must be MongoDB ObjectId"
+          "Invalid 'taskId'. Must be a MongoDB ObjectId"
         );
       });
     });

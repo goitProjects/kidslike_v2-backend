@@ -1,13 +1,19 @@
-import mongoose, { Document } from "mongoose";
+import mongoose from "mongoose";
 import supertest, { Response } from "supertest";
 import { Application } from "express";
-import { IParent, ISession } from "../helpers/typescript-helpers/interfaces";
+import jwt from "jsonwebtoken";
+import {
+  IParent,
+  IParentPopulated,
+  ISession,
+} from "../helpers/typescript-helpers/interfaces";
 import Server from "../server/server";
 import UserModel from "../REST-entities/user/user.model";
 import SessionModel from "../REST-entities/session/session.model";
 
 describe("Auth router test suite", () => {
   let app: Application;
+  let createdSession: ISession | null;
   let accessToken: string;
   let refreshToken: string;
   let sid: string;
@@ -30,7 +36,7 @@ describe("Auth router test suite", () => {
 
   describe("POST /auth/register", () => {
     let response: Response;
-    let createdUser: Document | null;
+    let createdUser: IParent | IParentPopulated | null;
 
     const validReqBody = {
       username: "Test",
@@ -61,7 +67,7 @@ describe("Auth router test suite", () => {
 
       it("Should return an expected result", () => {
         expect(response.body).toEqual({
-          id: (createdUser as Document)._id.toString(),
+          id: (createdUser as IParent)._id.toString(),
           email: validReqBody.email,
           username: validReqBody.username,
         });
@@ -109,8 +115,7 @@ describe("Auth router test suite", () => {
 
   describe("POST /auth/login", () => {
     let response: Response;
-    let createdSession: Document | null;
-    let user: Document | null;
+    let user: IParent | IParentPopulated | null;
 
     const validReqBody = {
       email: "test@email.com",
@@ -154,7 +159,7 @@ describe("Auth router test suite", () => {
           data: {
             children: [],
             id: (user as IParent)._id.toString(),
-            email: "test@email.com",
+            email: validReqBody.email,
             username: "Test",
           },
           accessToken,
@@ -163,12 +168,26 @@ describe("Auth router test suite", () => {
         });
       });
 
-      it("Should create an accessToken", () => {
-        expect(response.body.accessToken).toBeTruthy();
+      it("Should create valid 'accessToken'", () => {
+        expect(
+          jwt.verify(
+            response.body.accessToken,
+            process.env.JWT_SECRET as string
+          )
+        ).toBeTruthy();
       });
 
-      it("Should create a refreshToken", () => {
-        expect(response.body.refreshToken).toBeTruthy();
+      it("Should create valid 'refreshToken'", () => {
+        expect(
+          jwt.verify(
+            response.body.refreshToken,
+            process.env.JWT_SECRET as string
+          )
+        ).toBeTruthy();
+      });
+
+      it("Should create valid 'sid'", () => {
+        expect(mongoose.Types.ObjectId.isValid(response.body.sid)).toBeTruthy();
       });
 
       it("Should create a new session", () => {
@@ -229,8 +248,7 @@ describe("Auth router test suite", () => {
 
   describe("GET /auth/refresh", () => {
     let response: Response;
-    let createdSession: Document | null;
-    let session: Document | null;
+    let newSession: ISession | null;
 
     const validReqBody = {
       sid,
@@ -289,7 +307,9 @@ describe("Auth router test suite", () => {
           .post("/auth/refresh")
           .set("Authorization", `Bearer qwerty123`)
           .send(validReqBody);
-        session = await SessionModel.findById(sid);
+        createdSession = await SessionModel.findOne({
+          _id: (createdSession as ISession)._id,
+        });
       });
 
       afterAll(async () => {
@@ -298,6 +318,7 @@ describe("Auth router test suite", () => {
           .send({ email: "test@email.com", password: "qwerty123" });
         refreshToken = response.body.refreshToken;
         sid = response.body.sid;
+        createdSession = await SessionModel.findById(sid);
       });
 
       it("Should return a 401 status code", () => {
@@ -309,7 +330,7 @@ describe("Auth router test suite", () => {
       });
 
       it("Should delete session", () => {
-        expect(session).toBeFalsy();
+        expect(createdSession).toBeFalsy();
       });
     });
 
@@ -327,7 +348,7 @@ describe("Auth router test suite", () => {
 
       it("Should say that 'sid' is invalid", () => {
         expect(response.body.message).toBe(
-          "Invalid 'sid'. Must be MongoDB ObjectId"
+          "Invalid 'sid'. Must be a MongoDB ObjectId"
         );
       });
     });
@@ -339,7 +360,10 @@ describe("Auth router test suite", () => {
           .post("/auth/refresh")
           .set("Authorization", `Bearer ${refreshToken}`)
           .send(validReqBody);
-        createdSession = await SessionModel.findById(response.body.sid);
+        createdSession = await SessionModel.findOne({
+          _id: (createdSession as ISession)._id,
+        });
+        newSession = await SessionModel.findById(response.body.newSid);
         accessToken = response.body.newAccessToken;
       });
 
@@ -351,16 +375,40 @@ describe("Auth router test suite", () => {
         expect(response.body).toEqual({
           newAccessToken: response.body.newAccessToken,
           newRefreshToken: response.body.newRefreshToken,
-          sid: (createdSession as ISession)._id.toString(),
+          newSid: (newSession as ISession)._id.toString(),
         });
       });
 
-      it("Should create an accessToken", () => {
-        expect(response.body.newAccessToken).toBeTruthy();
+      it("Should create valid 'newAccessToken'", () => {
+        expect(
+          jwt.verify(
+            response.body.newAccessToken,
+            process.env.JWT_SECRET as string
+          )
+        ).toBeTruthy();
       });
 
-      it("Should create a refreshToken", () => {
-        expect(response.body.newRefreshToken).toBeTruthy();
+      it("Should create valid 'newRefreshToken'", () => {
+        expect(
+          jwt.verify(
+            response.body.newRefreshToken,
+            process.env.JWT_SECRET as string
+          )
+        ).toBeTruthy();
+      });
+
+      it("Should create valid 'sid'", () => {
+        expect(
+          mongoose.Types.ObjectId.isValid(response.body.newSid)
+        ).toBeTruthy();
+      });
+
+      it("Should delete old session from DB", () => {
+        expect(createdSession).toBeFalsy();
+      });
+
+      it("Should create new session in DB", () => {
+        expect(newSession).toBeTruthy();
       });
     });
   });

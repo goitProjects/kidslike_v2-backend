@@ -30,7 +30,7 @@ const addGiftIdSchema = Joi.object({
       const isValidObjectId = mongoose.Types.ObjectId.isValid(value);
       if (!isValidObjectId) {
         return helpers.message({
-          custom: "Invalid 'childId'. Must be MongoDB ObjectId",
+          custom: "Invalid 'childId'. Must be a MongoDB ObjectId",
         });
       }
       return value;
@@ -44,7 +44,7 @@ const editOrDeleteGiftIdSchema = Joi.object({
       const isValidObjectId = mongoose.Types.ObjectId.isValid(value);
       if (!isValidObjectId) {
         return helpers.message({
-          custom: "Invalid 'giftId'. Must be MongoDB ObjectId",
+          custom: "Invalid 'giftId'. Must be a MongoDB ObjectId",
         });
       }
       return value;
@@ -57,7 +57,7 @@ const router = Router();
 router.get("/", authorize, tryCatchWrapper(getGifts));
 router.post(
   "/:childId",
-  authorize,
+  tryCatchWrapper(authorize),
   multerMid.single("file"),
   validate(addGiftIdSchema, "params"),
   validate(addGiftSchema),
@@ -65,7 +65,7 @@ router.post(
 );
 router.patch(
   "/:giftId",
-  authorize,
+  tryCatchWrapper(authorize),
   multerMid.single("file"),
   validate(editOrDeleteGiftIdSchema, "params"),
   validate(editGiftSchema),
@@ -73,19 +73,19 @@ router.patch(
 );
 router.delete(
   "/:giftId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteGiftIdSchema, "params"),
   tryCatchWrapper(deleteGift)
 );
 router.patch(
   "/buy/:giftId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteGiftIdSchema, "params"),
   tryCatchWrapper(buyGift)
 );
 router.patch(
   "/reset/:giftId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteGiftIdSchema, "params"),
   tryCatchWrapper(resetGift)
 );

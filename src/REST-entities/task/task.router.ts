@@ -33,7 +33,7 @@ const addOrGetTaskIdSchema = Joi.object({
       const isValidObjectId = mongoose.Types.ObjectId.isValid(value);
       if (!isValidObjectId) {
         return helpers.message({
-          custom: "Invalid 'childId'. Must be MongoDB ObjectId",
+          custom: "Invalid 'childId'. Must be a MongoDB ObjectId",
         });
       }
       return value;
@@ -47,7 +47,7 @@ const editOrDeleteTaskIdSchema = Joi.object({
       const isValidObjectId = mongoose.Types.ObjectId.isValid(value);
       if (!isValidObjectId) {
         return helpers.message({
-          custom: "Invalid 'taskId'. Must be MongoDB ObjectId",
+          custom: "Invalid 'taskId'. Must be a MongoDB ObjectId",
         });
       }
       return value;
@@ -60,45 +60,45 @@ const router = Router();
 router.get("/", authorize, tryCatchWrapper(getTasks));
 router.post(
   "/:childId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(addOrGetTaskIdSchema, "params"),
   validate(addTaskSchema),
   tryCatchWrapper(addTask)
 );
 router.patch(
   "/:taskId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteTaskIdSchema, "params"),
   validate(editTaskSchema),
   tryCatchWrapper(editTask)
 );
 router.delete(
   "/:taskId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteTaskIdSchema, "params"),
   tryCatchWrapper(deleteTask)
 );
 router.patch(
   "/confirm/:taskId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteTaskIdSchema, "params"),
   tryCatchWrapper(confirmTask)
 );
 router.patch(
   "/cancel/:taskId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteTaskIdSchema, "params"),
   tryCatchWrapper(cancelTask)
 );
 router.patch(
   "/reset/:taskId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(editOrDeleteTaskIdSchema, "params"),
   tryCatchWrapper(resetTask)
 );
 router.get(
   "/finished/:childId",
-  authorize,
+  tryCatchWrapper(authorize),
   validate(addOrGetTaskIdSchema, "params"),
   tryCatchWrapper(getFinishedTasks)
 );
