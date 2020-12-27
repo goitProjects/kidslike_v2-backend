@@ -27,8 +27,8 @@ export const addTask = async (req: Request, res: Response) => {
     endDate = currentDate.plus({ days: req.body.daysToComplete });
     const task = await TaskModel.create({
       ...req.body,
-      startDate: currentDate.toLocaleString(),
-      endDate: endDate.toLocaleString(),
+      startDate: currentDate.toFormat("yyyy-MM-dd"),
+      endDate: endDate.toFormat("yyyy-MM-dd"),
       childId: childToUpdateId,
     });
     await ChildModel.findByIdAndUpdate(childToUpdateId, {
@@ -80,8 +80,8 @@ export const editTask = async (req: Request, res: Response) => {
     if (!(taskToEdit as ITask).startDate) {
       endDate = currentDate
         .plus({ days: req.body.daysToComplete })
-        .toLocaleString();
-      startDate = currentDate.toLocaleString();
+        .toFormat("yyyy-MM-dd");
+      startDate = currentDate.toFormat("yyyy-MM-dd");
     } else {
       // @ts-ignore
       startDate = taskToEdit.startDate;
@@ -89,7 +89,7 @@ export const editTask = async (req: Request, res: Response) => {
         .plus({
           days: req.body.daysToComplete,
         })
-        .toLocaleString();
+        .toFormat("yyyy-MM-dd");
     }
     const newTask: ITask = {
       ...taskToEdit.toObject(),
