@@ -15,13 +15,13 @@ import {
 import { multerMid } from "../../helpers/function-helpers/multer-config";
 
 const addGiftSchema = Joi.object({
-  name: Joi.string().required(),
-  price: Joi.number().required().min(1),
+  name: Joi.string().min(2).max(100).required(),
+  price: Joi.number().required().min(1).max(10000),
 });
 
 const editGiftSchema = Joi.object({
-  name: Joi.string(),
-  price: Joi.number().min(1),
+  name: Joi.string().min(2).max(100),
+  price: Joi.number().min(1).max(10000),
 });
 
 const addGiftIdSchema = Joi.object({
@@ -63,20 +63,20 @@ router.post(
   validate(addGiftSchema),
   tryCatchWrapper(addGift)
 );
-router.patch(
-  "/:giftId",
-  tryCatchWrapper(authorize),
-  multerMid.single("file"),
-  validate(editOrDeleteGiftIdSchema, "params"),
-  validate(editGiftSchema),
-  tryCatchWrapper(editGift)
-);
-router.delete(
-  "/:giftId",
-  tryCatchWrapper(authorize),
-  validate(editOrDeleteGiftIdSchema, "params"),
-  tryCatchWrapper(deleteGift)
-);
+router
+  .route("/:giftId")
+  .patch(
+    tryCatchWrapper(authorize),
+    multerMid.single("file"),
+    validate(editOrDeleteGiftIdSchema, "params"),
+    validate(editGiftSchema),
+    tryCatchWrapper(editGift)
+  )
+  .delete(
+    tryCatchWrapper(authorize),
+    validate(editOrDeleteGiftIdSchema, "params"),
+    tryCatchWrapper(deleteGift)
+  );
 router.patch(
   "/buy/:giftId",
   tryCatchWrapper(authorize),

@@ -16,15 +16,15 @@ import {
 import tryCatchWrapper from "../../helpers/function-helpers/try-catch-wrapper";
 
 const addTaskSchema = Joi.object({
-  name: Joi.string().required(),
-  reward: Joi.number().required().min(1),
-  daysToComplete: Joi.number().min(1),
+  name: Joi.string().min(2).max(100).required(),
+  reward: Joi.number().required().min(1).max(10000),
+  daysToComplete: Joi.number().min(1).max(10000),
 });
 
 const editTaskSchema = Joi.object({
-  name: Joi.string(),
-  reward: Joi.number().min(1),
-  daysToComplete: Joi.number().min(1),
+  name: Joi.string().min(2).max(100),
+  reward: Joi.number().min(1).max(10000),
+  daysToComplete: Joi.number().min(1).max(10000),
 }).min(1);
 
 const addOrGetTaskIdSchema = Joi.object({
@@ -65,19 +65,19 @@ router.post(
   validate(addTaskSchema),
   tryCatchWrapper(addTask)
 );
-router.patch(
-  "/:taskId",
-  tryCatchWrapper(authorize),
-  validate(editOrDeleteTaskIdSchema, "params"),
-  validate(editTaskSchema),
-  tryCatchWrapper(editTask)
-);
-router.delete(
-  "/:taskId",
-  tryCatchWrapper(authorize),
-  validate(editOrDeleteTaskIdSchema, "params"),
-  tryCatchWrapper(deleteTask)
-);
+router
+  .route("/:taskId")
+  .patch(
+    tryCatchWrapper(authorize),
+    validate(editOrDeleteTaskIdSchema, "params"),
+    validate(editTaskSchema),
+    tryCatchWrapper(editTask)
+  )
+  .delete(
+    tryCatchWrapper(authorize),
+    validate(editOrDeleteTaskIdSchema, "params"),
+    tryCatchWrapper(deleteTask)
+  );
 router.patch(
   "/confirm/:taskId",
   tryCatchWrapper(authorize),
